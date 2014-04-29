@@ -2,12 +2,13 @@
 require.config({
   "paths": {
     "jquery": "bower_components/jquery/jquery",
+    "react": "bower_components/react/react",
     "dynoforms": "dynoforms"
   }
 });
 
 
-require(['dynoforms', 'jquery'], function (dynoforms, $) {
+require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
 
   var testSchema = {
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -59,7 +60,8 @@ require(['dynoforms', 'jquery'], function (dynoforms, $) {
       },
       "content": {
         "type": "string",
-        "title": "Content"
+        "title": "Content",
+        "format": "rich-html"
       }
     }
   },
@@ -106,9 +108,16 @@ require(['dynoforms', 'jquery'], function (dynoforms, $) {
     "content": "<h1>Hello World!</h1>"
   },
 
-  form = new dynoforms.Form(testSchema, formConfig, testInstance);
+  form = new dynoforms.Dynoform(
+    {config: dynoforms.mergeConfigs(testSchema, formConfig)}
+  );
+  React.renderComponent(form, $('.dynoform')[0]);
 
-  console.log(form.getData());
+//  form = new dynoforms.Form(testSchema, formConfig, testInstance);
 
-  $('.dynoform').append(form.$el);
+//  console.log(form.getData());
+
+
+
+//  $('.dynoform').append(form.$el);
 });

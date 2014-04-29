@@ -1,49 +1,203 @@
 
-define(['jquery'], function($){
+define(['jquery', 'react'], function($, React){
 
   'use strict';
 
-  /**
-   * Factory function for form fields
-   *
-   * Args:
-   *   (type, format, isEnum, id, item, required, ctx)
-   */
-  function renderItem(type, format, isEnum, id, item, required, ctx){
+  var d = React.DOM,
 
-    switch(type){
+  Dynoform = React.createClass({
 
-      case 'array':
-        return new ArrayInput(id, item, required, ctx);
+    displayName: 'Dynoform',
 
-      case 'string':
-
-        if(format === 'rich-html'){
-          return new RichTextInput(id, item, required, ctx);
+    getDefaultProps: function() {
+      return {
+        cols: {
+          left: 2,
+          right: 10
         }
+      };
+    },
 
-        if(isEnum){
-          return new Select(id, item, required, ctx);
+    render: function() {
+      var cols = {left: this.props.cols.left, right: this.props.cols.right},
+          orderedFields,
+          key;
+
+      // Work out field ordering, if specified.
+      if(exists(this.props.config.order)){
+        orderedFields = this.props.config.order;
+      } else {
+        orderedFields = [];
+        for(key in this.props.config.properties){
+          if(this.props.config.properties.hasOwnProperty(key)){
+            orderedFields.push(key);
+          }
         }
+      }
 
-        return new StringInput(id, item, required, ctx);
+      return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'},
+        orderedFields.map(function(fieldName){
+          return this.renderField(
+              fieldName,
+              this.props.config.properties[fieldName],
+              {cols: cols}
+          )
+        }, this)
+        .concat([
+          ReactSubmit({cols: cols})
+        ])
+      );
+    },
 
-      case 'integer':
+    renderField: function(fieldName, config, props){
+      props = $.extend({}, props, {config: config, fieldName: fieldName});
 
-        if(isEnum){
-          return new Select(id, item, required, ctx);
-        }
+      console.log(config);
 
-        return new StringInput(id, item, required, ctx);
+      switch(config.type){
 
-      case 'boolean':
-        return new Checkbox(id, item, required, ctx);
+        case 'array':
+          return '';
+          throw new Error('No array input available');
 
-      default:
-        break;
+        case 'string':
+
+          if(config.format === 'rich-html'){
+            return ReactRichTextInput(props);
+          }
+
+          if(config.isEnum){
+            return ReactSelect(props);
+          }
+
+          return ReactStringInput(props);
+
+        case 'integer':
+
+          if(config.isEnum){
+            return ReactSelect(props);
+          }
+
+          return ReactStringInput(props);
+
+        case 'boolean':
+          return ReactCheckBox(props);
+
+        default:
+          break;
+      }
+      throw new Error();
+    },
+
+    onSubmit: function(event){
+      alert('Submit');
+      event.preventDefault();
+    },
+
+    onChange: function(event){
+      alert(event.target.value);
     }
-    throw new Error();
-  }
+  }),
+
+
+  ReactStringInput = React.createClass({
+
+    displayName: 'StringInput',
+
+    render: function(){
+      var label = this.props.config.title,
+          key = this.props.config.fieldName;
+
+      return d.div({className: 'form-group'},
+        [
+          ReactHorizontalLabel({label: label, 'htmlFor': key, cols: this.props.cols}),
+          d.div({className: 'col-lg-' + this.props.cols.left},
+            d.input({name: key, key: key, type: 'text', className: 'form-control', required: '', value: 'foo'})
+          )
+        ]
+      );
+    }
+  }),
+
+  ReactHorizontalLabel = React.createClass({
+    displayName: 'ReactHorizontalLabel',
+
+    render: function(){
+      return d.label({className: 'control-label col-lg-' + this.props.cols.left, htmlFor: this.props.htmlFor}, this.props.label)
+    }
+  }),
+
+  ReactRichTextInput = React.createClass({
+    displayName: 'ReactRichTextInput',
+
+    render: function(){
+      var wrapperClassName = 'col-lg-' + this.props.cols.right;
+
+      return d.div({className: 'form-group'},
+        [
+          ReactHorizontalLabel({label: 'ReactRichTextInput', htmlFor: 'key', cols: this.props.cols}),
+          d.div({className: wrapperClassName},
+            d.textarea({name: 'key', className: 'form-control', rows: '5', required: ''})
+          )
+        ]
+      )
+    }
+  }),
+
+  ReactSubmit = React.createClass({
+    displayName: 'ReactSubmit',
+
+    render: function(){
+      var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' ');
+      return d.div({className: 'form-group'},
+        d.div({className: wrapperClassName},
+          d.input({type: 'submit', value: 'submit', className: 'btn btn-default'}))
+      )
+    }
+  }),
+
+  ReactSelect = React.createClass({
+    displayName: 'ReactSelect',
+
+    render: function(){
+      var options = [
+        ['One', 1],
+        ['Two', 2],
+        ['Three', 3]
+      ],
+      wrapperClassName  = ['col-lg-' + this.props.cols.right].join(' ');
+
+      return d.div({className: 'form-group'}, [
+        ReactHorizontalLabel({label: 'ReactSelect', htmlFor: 'key', cols: this.props.cols}),
+        d.div({className: wrapperClassName},
+          d.select({name: 'name', className: 'form-control', required: ''},
+            options.map(function(choice){
+              return d.option({value: choice[1]}, choice[0])
+            })
+          )
+        )
+      ]);
+    }
+  }),
+
+  ReactCheckBox = React.createClass({
+
+    displayName: 'ReactCheckBox',
+
+    render: function(){
+      var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' ');
+      return d.div({className: 'form-group'},
+        d.div({className: wrapperClassName},
+          d.div({className: 'checkbox'},
+            d.label({}, [
+              d.input({name: 'name', type: 'checkbox', required: ''}),
+              'ReactCheckBox'
+            ])
+          )
+        )
+      )
+    }
+  });
 
   /**
    * Merge a form config with a proper JSON schema, giving the full
@@ -59,31 +213,6 @@ define(['jquery'], function($){
 
   function exists(val){
     return !(val === undefined || val === null);
-  }
-
-  function renderSubmit(ctx){
-    var wrapperClasses = ['col-lg-offset-' + ctx.leftCols, 'col-lg-' + ctx.rightCols].join(' ');
-
-    return $(
-        '<div class="form-group">' +
-          '<div class="' + wrapperClasses +'">' +
-            '<button type="submit" class="btn btn-default">Save</button>' +
-          '</div>' +
-        '</div>'
-    );
-  }
-
-  function renderHorizontalLabel(key, property, leftCols){
-    var classAttr = " class='" + ['control-label', 'col-lg-' + leftCols].join(' ') + "'";
-    return renderLabel(key, property, classAttr);
-  }
-
-  function renderLabel(key, property, classAttr){
-    return "<label" + classAttr + " for='" + key + "'>" + readableTitle(key, property) + "</label>";
-  }
-
-  function readableTitle(key, property){
-    return property.title || key;
   }
 
   function stringInputType(property){
@@ -110,284 +239,83 @@ define(['jquery'], function($){
     return true;
   }
 
-  /**
-   * Dynamic Form class, configurable using a JSON schema.
-   *
-   * @param schema {object} a JSON schema object
-   * @param formConfig {object} a form config
-   * @param data {object} the data set on the form
-   * @constructor
-   */
-  function Form(schema, formConfig, data){
-    this.$el = null;
-    this.fields = null;
-    this.config = mergeConfigs(schema, formConfig);
-    this.data = null;
-    this.init(this.config, {
-      formType: 'form-horizontal',
-      leftCols: 3,
-      rightCols: 9
-    });
+//  Form.prototype.init = function(config, ctx){
+//    var formTypes, orderedFields;
+//
+//    this.$el = $('<form></form>');
+//    this.fields = {};
+//
+//    formTypes = ['form-horizontal'];
+//
+//    if(formTypes.indexOf(ctx.formType) < 0){
+//      throw new Error('Bootstrap form type must be one of ' + formTypes);
+//    }
+//
+//    this.$el.attr({
+//      role: 'form',
+//      class: ctx.formType
+//    });
+//
+//    if(exists(config.order)){
+//      orderedFields = config.order;
+//    } else {
+//      orderedFields = $.map(config.properties, function(fieldName){return fieldName});
+//    }
+//
+//    $.each(orderedFields, $.proxy(function(index, fieldName){
+//      var required, field, property;
+//
+//      property = config.properties[fieldName];
+//      required = config.required.indexOf(fieldName) >= 0;
+//
+//      field = renderItem(
+//          property.type, property.format, exists(property.enum), fieldName, property, required, ctx);
+//
+//      this.fields[fieldName] = field;
+//      this.$el.append(field.$el);
+//    }, this));
+//
+//    this.$el.append(renderSubmit(ctx));
+//  };
 
-    if(exists(data)){
-      this.setData(data);
+//  Form.prototype.setData = function(data){
+//    this.data = data;
+//
+//    if(!$.isEmptyObject(this.data)){
+//      $.each(this.fields, $.proxy(function(key, field){
+//        if(this.data.hasOwnProperty(key)){
+//          field.set(this.data[key]);
+//        }
+//      }, this));
+//    }
+//  };
+//
+//  Form.prototype.getData = function(){
+//    var data = {};
+//    $.each(this.fields, $.proxy(function(key, field){
+//      data[key] = field.get();
+//    }, this));
+//    return data;
+//  };
+
+
+  function validateChoices(formChoices, enumChoices){
+    var arr1, arr2;
+
+    arr1 = $.map(formChoices, function(item){return item[1]});
+    arr1.sort();
+
+    arr2 = enumChoices.slice();
+    arr2.sort();
+
+    if(!arraysEqual(arr1, arr2)){
+      throw new Error('Form choices do not match the enum specified on the schema');
     }
   }
-
-  Form.prototype.init = function(config, ctx){
-    var formTypes, orderedFields;
-
-    this.$el = $('<form></form>');
-    this.fields = {};
-
-    formTypes = ['form-horizontal'];
-
-    if(formTypes.indexOf(ctx.formType) < 0){
-      throw new Error('Bootstrap form type must be one of ' + formTypes);
-    }
-
-    this.$el.attr({
-      role: 'form',
-      class: ctx.formType
-    });
-
-    if(exists(config.order)){
-      orderedFields = config.order;
-    } else {
-      orderedFields = $.map(config.properties, function(fieldName){return fieldName});
-    }
-
-    $.each(orderedFields, $.proxy(function(index, fieldName){
-      var required, field, property;
-
-      property = config.properties[fieldName];
-      required = config.required.indexOf(fieldName) >= 0;
-
-      field = renderItem(
-          property.type, property.format, exists(property.enum), fieldName, property, required, ctx);
-
-      this.fields[fieldName] = field;
-      this.$el.append(field.$el);
-    }, this));
-
-    this.$el.append(renderSubmit(ctx));
-  };
-
-  Form.prototype.setData = function(data){
-    this.data = data;
-
-    if(!$.isEmptyObject(this.data)){
-      $.each(this.fields, $.proxy(function(key, field){
-        if(this.data.hasOwnProperty(key)){
-          field.set(this.data[key]);
-        }
-      }, this));
-    }
-  };
-
-  Form.prototype.getData = function(){
-    var data = {};
-    $.each(this.fields, $.proxy(function(key, field){
-      data[key] = field.get();
-    }, this));
-    return data;
-  };
-
-  function simpleGet(){
-    return this.$formControl.val();
-  }
-
-  function simpleSet(val){
-    return this.$formControl.val(val);
-  }
-
-  function StringInput(id, item, required, ctx){
-    this.$formControl = null;
-    this.$el = null;
-    this.init(id, item, required, ctx);
-  }
-
-  StringInput.prototype.init = function(id, item, required, ctx){
-    var wrapperClasses;
-    wrapperClasses = ['col-lg-' + ctx.rightCols].join(' ');
-    this.$el = $(
-        "<div class='form-group'>" +
-          renderHorizontalLabel(id, item, ctx.leftCols) +
-          "<div class='" + wrapperClasses +"'>" +
-            "<input " +
-              "name='" + readableTitle(id, item) + "' " +
-              "type='" + stringInputType(item) + "' " +
-              "id='" + id + "' " +
-              "class='form-control' " +
-              (required ? "required" : "") +
-            "/>" +
-          "</div>" +
-        "</div>"
-    );
-    this.$formControl  = $(this.$el.find('input'));
-  };
-
-  StringInput.prototype.get = simpleGet;
-
-  StringInput.prototype.set = simpleSet;
-
-  function RichTextInput(id, item, required, ctx){
-    this.$formControl = null;
-    this.$el = null;
-    this.init(id, item, required, ctx);
-  }
-
-  RichTextInput.prototype.init = function(id, item, required, ctx){
-    var wrapperClasses;
-
-    wrapperClasses = ['col-lg-' + ctx.rightCols].join(' ');
-
-    this.$el = $(
-        "<div class='form-group'>" +
-          renderHorizontalLabel(id, item, ctx.leftCols) +
-          "<div class='" + wrapperClasses +"'>" +
-            "<textarea " +
-              "name='" + readableTitle(id, item) + "' " +
-              "id='" + id + "' " +
-              "class='form-control'" +
-              "rows='5'" +
-              (required ? "required" : "") +
-            "/>" +
-          "</div>" +
-        "</div>"
-    );
-    this.$formControl = $(this.$el.find('textarea'));
-  };
-
-  RichTextInput.prototype.get = simpleGet;
-
-  RichTextInput.prototype.set = simpleSet;
-
-
-  function Select(id, item, required, ctx){
-    this.$formControl = null;
-    this.$el = null;
-    this.init(id, item, required, ctx);
-  }
-
-  Select.prototype.init = function(id, item, required, ctx){
-    var wrapperClasses, choices, options;
-
-    wrapperClasses = ['col-lg-' + ctx.rightCols].join(' ');
-
-    function createOption(memo, choice){
-      return memo + "<option value='" + choice[1] +"'>" + choice[0] + "</option>";
-    }
-
-    function validateChoices(formChoices, enumChoices){
-      var arr1, arr2;
-
-      arr1 = $.map(formChoices, function(item){return item[1]});
-      arr1.sort();
-
-      arr2 = enumChoices.slice();
-      arr2.sort();
-
-      if(!arraysEqual(arr1, arr2)){
-        throw new Error('Form choices do not match the enum specified on the schema');
-      }
-    }
-
-    if(item.hasOwnProperty('choices')){
-      choices = item.choices;
-    } else {
-      choices = [];
-      $.each(item.enum, function(index, value){
-        choices.push([value, value]);
-      });
-    }
-
-    validateChoices(choices, item.enum);
-    options = choices.reduce(createOption, '');
-
-    this.$el = $(
-        "<div class='form-group'>" +
-          renderHorizontalLabel(id, item, ctx.leftCols) +
-          "<div class='" + wrapperClasses +"'>" +
-            "<select " +
-              "name='" + readableTitle(id, item) + "' " +
-              "id='" + id + "' " +
-              "class='form-control'" +
-              (required ? "required" : "") +
-            ">" +
-              options +
-            "</select>" +
-          "</div>" +
-        "</div>"
-    );
-    this.$formControl = $(this.$el.find('select'));
-  };
-
-  Select.prototype.get = simpleGet;
-
-  Select.prototype.set = simpleSet;
-
-
-  function Checkbox(id, item, required, ctx){
-    this.$formControl = null;
-    this.$el = null;
-    this.init(id, item, required, ctx);
-  }
-
-  Checkbox.prototype.init = function(id, item, required, ctx){
-    var inputType = 'checkbox',
-        title = readableTitle(id, item),
-        wrapperClasses = ['col-lg-offset-' + ctx.leftCols, 'col-lg-' + ctx.rightCols].join(' ');
-    this.$el = $(
-      '<div class="form-group">' +
-        '<div class="' + wrapperClasses +'">' +
-          '<div class="checkbox">' +
-            '<label>' +
-              "<input " +
-                "name='" + title + "' " +
-                "type='" + inputType + "' " +
-                "id='" + id + "' " +
-                (required ? "required" : "") +
-              "/>" +
-              title +
-            '</label>' +
-          '</div>' +
-        '</div>' +
-      '</div>'
-    );
-    this.$formControl = $(this.$el.find('input'));
-  };
-
-  Checkbox.prototype.get = function(){
-    return this.$formControl.prop( "checked" );
-  };
-
-  Checkbox.prototype.set = function(val){
-    if(val){
-      this.$formControl.attr('checked', 'checked');
-    } else {
-      this.$formControl.removeAttr('checked');
-    }
-  };
-
-  function ArrayInput(id, item, required, ctx){
-    this.$el = null;
-    this.$formControl = null;
-    this.init(id, item, required, ctx);
-  }
-
-  ArrayInput.prototype.init = StringInput.prototype.init;
-
-  ArrayInput.prototype.get = function(){
-    return this.$formControl.val().split(', ');
-  };
-
-  ArrayInput.prototype.set = function(val){
-    this.$formControl.val(val.join(', '));
-  };
 
   return {
-    Form: Form
+    Dynoform: Dynoform,
+    mergeConfigs: mergeConfigs
   };
 
 });
