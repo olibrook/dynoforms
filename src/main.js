@@ -113,7 +113,7 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
     {config: dynoforms.mergeConfigs(testSchema, formConfig)}
   ), $('.dynoform')[0]);
 
-  form.setData(testInstance);
+  form.setValue(testInstance);
 
   window.form = form;
   window.React = React;

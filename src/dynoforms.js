@@ -9,7 +9,7 @@ define(['jquery', 'react'], function($, React){
 
     displayName: 'Dynoform',
 
-    setData: function(data) {
+    setValue: function(data) {
       var k;
       for(k in this.refs){
         if(this.refs.hasOwnProperty(k) && data.hasOwnProperty(k)){
@@ -18,7 +18,7 @@ define(['jquery', 'react'], function($, React){
       }
     },
 
-    getData: function() {
+    getValue: function() {
       var k,
           ret = {};
 
