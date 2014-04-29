@@ -16,7 +16,8 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
     "description": "A bootstrap grid container.",
     "type": "object",
     "required": [
-      "linked_url_node_keys"
+      "linked_url_node_keys",
+      "num_siblings"
     ],
     "properties": {
       "gender": {
@@ -84,10 +85,10 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
         }
       },
       order: [
+        'gender',
         'content',
         'content_tree_order',
         'num_siblings',
-        'gender',
         'updated',
         'linked_url_node_keys',
         'created',
@@ -108,10 +109,14 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
     "content": "<h1>Hello World!</h1>"
   },
 
-  form = new dynoforms.Dynoform(
+  form = React.renderComponent(dynoforms.Dynoform(
     {config: dynoforms.mergeConfigs(testSchema, formConfig)}
-  );
-  React.renderComponent(form, $('.dynoform')[0]);
+  ), $('.dynoform')[0]);
+
+  form.setData(testInstance);
+
+  window.form = form;
+  window.React = React;
 
 //  form = new dynoforms.Form(testSchema, formConfig, testInstance);
 

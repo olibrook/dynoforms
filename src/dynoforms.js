@@ -5,9 +5,30 @@ define(['jquery', 'react'], function($, React){
 
   var d = React.DOM,
 
-  Dynoform = React.createClass({
+  ReactForm = React.createClass({
 
     displayName: 'Dynoform',
+
+    setData: function(data) {
+      var k;
+      for(k in this.refs){
+        if(this.refs.hasOwnProperty(k) && data.hasOwnProperty(k)){
+          this.refs[k].setValue(data[k]);
+        }
+      }
+    },
+
+    getData: function() {
+      var k,
+          ret = {};
+
+      for(k in this.refs){
+        if(this.refs.hasOwnProperty(k)){
+          ret[k] = this.refs[k].getValue();
+        }
+      }
+      return ret;
+    },
 
     getDefaultProps: function() {
       return {
@@ -44,19 +65,28 @@ define(['jquery', 'react'], function($, React){
           )
         }, this)
         .concat([
-          ReactSubmit({cols: cols})
+          ReactSubmit({key: 'submit', cols: cols})
         ])
       );
     },
 
     renderField: function(fieldName, config, props){
-      props = $.extend({}, props, {config: config, fieldName: fieldName});
 
-      console.log(config);
+      config = $.extend({}, config, {
+        fieldName: fieldName,
+        required: this.props.config.required.indexOf(fieldName) >= 0
+      });
+
+      props = $.extend({}, props, {
+        config: config,
+        key: config.fieldName,
+        ref: fieldName
+      });
 
       switch(config.type){
 
         case 'array':
+          // TODO: Need a usable, comma-separated field.
           return '';
           throw new Error('No array input available');
 
@@ -66,7 +96,7 @@ define(['jquery', 'react'], function($, React){
             return ReactRichTextInput(props);
           }
 
-          if(config.isEnum){
+          if(config.enum){
             return ReactSelect(props);
           }
 
@@ -74,7 +104,7 @@ define(['jquery', 'react'], function($, React){
 
         case 'integer':
 
-          if(config.isEnum){
+          if(config.enum){
             return ReactSelect(props);
           }
 
@@ -104,18 +134,57 @@ define(['jquery', 'react'], function($, React){
 
     displayName: 'StringInput',
 
+    getInitialState: function(){
+      return {value: ''}
+    },
+
+    setValue: function(value){
+      this.setState({value: value});
+    },
+
+    getValue: function(){
+      return this.state.value;
+    },
+
     render: function(){
       var label = this.props.config.title,
-          key = this.props.config.fieldName;
+          fieldName = this.props.config.fieldName,
+          count = 0;
+
+      function key(){
+        return fieldName + count++;
+      }
 
       return d.div({className: 'form-group'},
         [
-          ReactHorizontalLabel({label: label, 'htmlFor': key, cols: this.props.cols}),
-          d.div({className: 'col-lg-' + this.props.cols.left},
-            d.input({name: key, key: key, type: 'text', className: 'form-control', required: '', value: 'foo'})
+          ReactHorizontalLabel({key: key(), label: label, 'htmlFor': fieldName, cols: this.props.cols}),
+          d.div({key: key(), className: 'col-lg-' + this.props.cols.left},
+            d.input({
+              id: fieldName,
+              name: fieldName,
+              type: this.getType(this.props.config),
+              className: 'form-control',
+              required: this.props.config.required,
+              value: this.state.value,
+              onChange: function(e){this.setState({value: e.target.value});}
+            })
           )
         ]
       );
+    },
+
+    getType: function(config){
+      switch(config.type){
+        case 'string':
+          switch (config.format){
+            case "date-time": return "date-time";
+            case "rich-html": return "text";
+          }
+          return "text";
+        case 'array':   return "text";
+        case 'integer': return "number";
+        default: throw new Error('Type not supported: "' + [config.type, config.format] + '"');
+      }
     }
   }),
 
@@ -123,21 +192,52 @@ define(['jquery', 'react'], function($, React){
     displayName: 'ReactHorizontalLabel',
 
     render: function(){
-      return d.label({className: 'control-label col-lg-' + this.props.cols.left, htmlFor: this.props.htmlFor}, this.props.label)
+      return d.label({
+          className: 'control-label col-lg-' + this.props.cols.left,
+          htmlFor: this.props.htmlFor
+        },
+        this.props.label
+      )
     }
   }),
 
   ReactRichTextInput = React.createClass({
     displayName: 'ReactRichTextInput',
 
-    render: function(){
-      var wrapperClassName = 'col-lg-' + this.props.cols.right;
+    getInitialState: function(){
+      return {value: ''}
+    },
 
-      return d.div({className: 'form-group'},
+    setValue: function(value){
+      this.setState({value: value});
+    },
+
+    getValue: function(){
+      return this.state.value;
+    },
+
+    render: function(){
+      var wrapperClassName = 'col-lg-' + this.props.cols.right,
+          fieldName = this.props.config.fieldName,
+          count = 0;
+
+      function key(){
+        return fieldName + count ++;
+      }
+
+      return d.div({className: 'form-group', key: fieldName},
         [
-          ReactHorizontalLabel({label: 'ReactRichTextInput', htmlFor: 'key', cols: this.props.cols}),
-          d.div({className: wrapperClassName},
-            d.textarea({name: 'key', className: 'form-control', rows: '5', required: ''})
+          ReactHorizontalLabel({key: key(), label: 'ReactRichTextInput', htmlFor: fieldName, cols: this.props.cols}),
+          d.div({key: key(), className: wrapperClassName},
+            d.textarea({
+              id: fieldName,
+              name: fieldName,
+              className: 'form-control',
+              rows: '10',
+              required: this.props.config.required,
+              value: this.state.value,
+              onChange: function(e){this.setState({value: e.target.value});}
+            })
           )
         ]
       )
@@ -149,9 +249,15 @@ define(['jquery', 'react'], function($, React){
 
     render: function(){
       var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' ');
+
       return d.div({className: 'form-group'},
         d.div({className: wrapperClassName},
-          d.input({type: 'submit', value: 'submit', className: 'btn btn-default'}))
+          d.input({
+            type: 'submit',
+            value: 'submit',
+            className: 'btn btn-default'
+          })
+        )
       )
     }
   }),
@@ -159,24 +265,77 @@ define(['jquery', 'react'], function($, React){
   ReactSelect = React.createClass({
     displayName: 'ReactSelect',
 
-    render: function(){
-      var options = [
-        ['One', 1],
-        ['Two', 2],
-        ['Three', 3]
-      ],
-      wrapperClassName  = ['col-lg-' + this.props.cols.right].join(' ');
+    // TODO: Pick sensible default
+    getInitialState: function(){
+      return {value: ''}
+    },
 
-      return d.div({className: 'form-group'}, [
-        ReactHorizontalLabel({label: 'ReactSelect', htmlFor: 'key', cols: this.props.cols}),
-        d.div({className: wrapperClassName},
-          d.select({name: 'name', className: 'form-control', required: ''},
+    setValue: function(value){
+      this.setState({value: value});
+    },
+
+    getValue: function(){
+      return this.state.value;
+    },
+
+    render: function(){
+      var wrapperClassName  = ['col-lg-' + this.props.cols.right].join(' '),
+          options,
+          i,
+          label = this.props.config.title,
+          fieldName = this.props.config.fieldName,
+          count = 0;
+
+      function key(){
+        return fieldName + count++;
+      }
+
+      if(this.props.config.choices){
+        options = this.props.config.choices;
+      } else {
+        options = [];
+        for(i=0; i<this.props.config.enum.length; i+=1){
+          options.push([this.props.config.enum[i], this.props.config.enum[i]]);
+        }
+      }
+
+      this.validateChoices(options, this.props.config.enum);
+
+      return d.div({className: 'form-group', key: fieldName}, [
+        ReactHorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
+        d.div({key: key(), className: wrapperClassName},
+          d.select(
+            {
+              id: fieldName,
+              name: fieldName,
+              className: 'form-control',
+              required: this.props.config.required,
+              value: this.state.value,
+              onChange: function(e){this.setState({value: e.target.value});}
+            },
             options.map(function(choice){
-              return d.option({value: choice[1]}, choice[0])
+              return d.option({key: key(), value: choice[1]}, choice[0])
             })
           )
         )
       ]);
+    },
+
+    /**
+     * Ensure the choices specified on the form match that on a schema's enum property.
+     */
+    validateChoices: function(formChoices, enumChoices){
+      var arr1, arr2;
+
+      arr1 = $.map(formChoices, function(item){return item[1]});
+      arr1.sort();
+
+      arr2 = enumChoices.slice();
+      arr2.sort();
+
+      if(!arraysEqual(arr1, arr2)){
+        throw new Error('Form choices do not match the enum specified on the schema');
+      }
     }
   }),
 
@@ -184,14 +343,56 @@ define(['jquery', 'react'], function($, React){
 
     displayName: 'ReactCheckBox',
 
+    getInitialState: function(){
+      return {value: ''}
+    },
+
+    setValue: function(value){
+      if(value === true){
+        value = 'checked';
+      } else if(value === false){
+        value = '';
+      } else {
+        throw new Error();
+      }
+      this.setState({value: value});
+    },
+
+    getValue: function(){
+      var value = this.state.value;
+
+      if(value === 'checked'){
+        return true;
+      } else if(value === ''){
+        return false;
+      } else {
+        throw new Error();
+      }
+    },
+
     render: function(){
-      var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' ');
+      var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' '),
+          fieldName = this.props.config.fieldName,
+          count = 0;
+
+      function key(){
+        return fieldName + count++;
+      }
+
       return d.div({className: 'form-group'},
         d.div({className: wrapperClassName},
           d.div({className: 'checkbox'},
             d.label({}, [
-              d.input({name: 'name', type: 'checkbox', required: ''}),
-              'ReactCheckBox'
+              d.input({
+                name: fieldName,
+                id: fieldName,
+                type: 'checkbox',
+                key: key(),
+                required: this.props.config.required,
+                checked: this.state.value,
+                onChange: function(e){this.setState({value: e.target.value});}
+              }),
+              d.span({key: key()}, this.props.config.title)
             ])
           )
         )
@@ -215,20 +416,6 @@ define(['jquery', 'react'], function($, React){
     return !(val === undefined || val === null);
   }
 
-  function stringInputType(property){
-    switch(property.type){
-      case 'string':
-        switch (property.format){
-          case "date-time": return "date-time";
-          case "rich-html": return "text";
-        }
-        return "text";
-      case 'array':   return "text";
-      case 'integer': return "number";
-      default: throw new Error('Type not supported: "' + [property.type, property.format] + '"');
-    }
-  }
-
   function arraysEqual(a, b) {
     if (a === b) return true;
     if (a == null || b == null) return false;
@@ -239,82 +426,8 @@ define(['jquery', 'react'], function($, React){
     return true;
   }
 
-//  Form.prototype.init = function(config, ctx){
-//    var formTypes, orderedFields;
-//
-//    this.$el = $('<form></form>');
-//    this.fields = {};
-//
-//    formTypes = ['form-horizontal'];
-//
-//    if(formTypes.indexOf(ctx.formType) < 0){
-//      throw new Error('Bootstrap form type must be one of ' + formTypes);
-//    }
-//
-//    this.$el.attr({
-//      role: 'form',
-//      class: ctx.formType
-//    });
-//
-//    if(exists(config.order)){
-//      orderedFields = config.order;
-//    } else {
-//      orderedFields = $.map(config.properties, function(fieldName){return fieldName});
-//    }
-//
-//    $.each(orderedFields, $.proxy(function(index, fieldName){
-//      var required, field, property;
-//
-//      property = config.properties[fieldName];
-//      required = config.required.indexOf(fieldName) >= 0;
-//
-//      field = renderItem(
-//          property.type, property.format, exists(property.enum), fieldName, property, required, ctx);
-//
-//      this.fields[fieldName] = field;
-//      this.$el.append(field.$el);
-//    }, this));
-//
-//    this.$el.append(renderSubmit(ctx));
-//  };
-
-//  Form.prototype.setData = function(data){
-//    this.data = data;
-//
-//    if(!$.isEmptyObject(this.data)){
-//      $.each(this.fields, $.proxy(function(key, field){
-//        if(this.data.hasOwnProperty(key)){
-//          field.set(this.data[key]);
-//        }
-//      }, this));
-//    }
-//  };
-//
-//  Form.prototype.getData = function(){
-//    var data = {};
-//    $.each(this.fields, $.proxy(function(key, field){
-//      data[key] = field.get();
-//    }, this));
-//    return data;
-//  };
-
-
-  function validateChoices(formChoices, enumChoices){
-    var arr1, arr2;
-
-    arr1 = $.map(formChoices, function(item){return item[1]});
-    arr1.sort();
-
-    arr2 = enumChoices.slice();
-    arr2.sort();
-
-    if(!arraysEqual(arr1, arr2)){
-      throw new Error('Form choices do not match the enum specified on the schema');
-    }
-  }
-
   return {
-    Dynoform: Dynoform,
+    Dynoform: ReactForm,
     mergeConfigs: mergeConfigs
   };
 
