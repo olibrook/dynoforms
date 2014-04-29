@@ -100,6 +100,16 @@ define(['jquery'], function($){
     }
   }
 
+  function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; ++i) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
   /**
    * Dynamic Form class, configurable using a JSON schema.
    *
@@ -208,7 +218,7 @@ define(['jquery'], function($){
               "name='" + readableTitle(id, item) + "' " +
               "type='" + stringInputType(item) + "' " +
               "id='" + id + "' " +
-              "class='form-control'" +
+              "class='form-control' " +
               (required ? "required" : "") +
             "/>" +
           "</div>" +
@@ -269,6 +279,20 @@ define(['jquery'], function($){
       return memo + "<option value='" + choice[1] +"'>" + choice[0] + "</option>";
     }
 
+    function validateChoices(formChoices, enumChoices){
+      var arr1, arr2;
+
+      arr1 = $.map(formChoices, function(item){return item[1]});
+      arr1.sort();
+
+      arr2 = enumChoices.slice();
+      arr2.sort();
+
+      if(!arraysEqual(arr1, arr2)){
+        throw new Error('Form choices do not match the enum specified on the schema');
+      }
+    }
+
     if(item.hasOwnProperty('choices')){
       choices = item.choices;
     } else {
@@ -277,6 +301,8 @@ define(['jquery'], function($){
         choices.push([value, value]);
       });
     }
+
+    validateChoices(choices, item.enum);
     options = choices.reduce(createOption, '');
 
     this.$el = $(

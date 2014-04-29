@@ -1,7 +1,7 @@
 Dynoforms
 =========
 
-Dead-simple javascript forms build from JSON schemas, with a somewhat Djangonic influence.
+Dead-simple javascript forms built from JSON schemas, with a somewhat Djangonic influence.
 
 TODO
 ----
