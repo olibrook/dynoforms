@@ -166,7 +166,7 @@ define(['jquery', 'react'], function($, React){
               className: 'form-control',
               required: this.props.config.required,
               value: this.state.value,
-              onChange: function(e){this.setState({value: e.target.value});}
+              onChange: function(e){this.setState({value: e.target.value});}.bind(this)
             })
           )
         ]
@@ -236,7 +236,7 @@ define(['jquery', 'react'], function($, React){
               rows: '10',
               required: this.props.config.required,
               value: this.state.value,
-              onChange: function(e){this.setState({value: e.target.value});}
+              onChange: function(e){this.setState({value: e.target.value});}.bind(this)
             })
           )
         ]
@@ -311,7 +311,7 @@ define(['jquery', 'react'], function($, React){
               className: 'form-control',
               required: this.props.config.required,
               value: this.state.value,
-              onChange: function(e){this.setState({value: e.target.value});}
+              onChange: function(e){this.setState({value: e.target.value});}.bind(this)
             },
             options.map(function(choice){
               return d.option({key: key(), value: choice[1]}, choice[0])
@@ -348,26 +348,11 @@ define(['jquery', 'react'], function($, React){
     },
 
     setValue: function(value){
-      if(value === true){
-        value = 'checked';
-      } else if(value === false){
-        value = '';
-      } else {
-        throw new Error();
-      }
       this.setState({value: value});
     },
 
     getValue: function(){
-      var value = this.state.value;
-
-      if(value === 'checked'){
-        return true;
-      } else if(value === ''){
-        return false;
-      } else {
-        throw new Error();
-      }
+      return this.state.value;
     },
 
     render: function(){
@@ -390,7 +375,7 @@ define(['jquery', 'react'], function($, React){
                 key: key(),
                 required: this.props.config.required,
                 checked: this.state.value,
-                onChange: function(e){this.setState({value: e.target.value});}
+                onChange: function(e){this.setState({value: e.target.checked});}.bind(this)
               }),
               d.span({key: key()}, this.props.config.title)
             ])
