@@ -70,18 +70,41 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
   // Configure form options like this
     formConfig = {
       properties: {
-        gender: {
+        "gender": {
           choices: [
             ['Male', 'male'],
             ['Female', 'female']
-          ]
+          ],
+          helpText: 'The gender of a human'
         },
-        num_siblings: {
+        "num_siblings": {
           choices: [
             ['One', 1],
             ['Two', 2],
             ['Three', 3]
-          ]
+          ],
+          helpText: 'Brothers and sisters only'
+        },
+        "content_tree_order": {
+          helpText: 'The items order in the page'
+        },
+        "updated": {
+          helpText: 'When this item was last updated'
+        },
+        "linked_url_node_keys": {
+          helpText: 'Other pages which link to this'
+        },
+        "created": {
+          helpText: 'Datetime when this item was first created'
+        },
+        "currently_cacheable": {
+          helpText: 'Can this item currently be cached?'
+        },
+        "content_tree_parent": {
+          helpText: 'Id of the parent content node'
+        },
+        "content": {
+          helpText: 'Markdown-formatted text'
         }
       },
       order: [

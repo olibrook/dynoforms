@@ -120,7 +120,6 @@ define(['jquery', 'react'], function($, React){
     },
 
     onSubmit: function(event){
-      alert('Submit');
       event.preventDefault();
     },
 
@@ -161,17 +160,20 @@ define(['jquery', 'react'], function($, React){
       return d.div({className: 'form-group'},
         [
           HorizontalLabel({key: key(), label: label, 'htmlFor': fieldName, cols: this.props.cols}),
-          d.div({key: key(), className: 'col-lg-' + this.props.cols.left}, [
-            d.input({
-              id: fieldName,
-              name: fieldName,
-              type: this.getType(this.props.config),
-              className: 'form-control',
-              required: this.props.config.required,
-              value: this.state.value,
-              onChange: function(e){this.setState({value: e.target.value});}.bind(this)
-            })
-          ])
+          d.div({key: key(), className: 'col-lg-' + this.props.cols.left},
+            [
+              d.input({
+                id: fieldName,
+                name: fieldName,
+                type: this.getType(this.props.config),
+                className: 'form-control',
+                required: this.props.config.required,
+                value: this.state.value,
+                onChange: function(e){this.setState({value: e.target.value});}.bind(this)
+              }),
+              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+            ]
+          )
         ]
       );
     },
@@ -244,15 +246,18 @@ define(['jquery', 'react'], function($, React){
         [
           HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
           d.div({key: key(), className: wrapperClassName},
-            d.textarea({
-              id: fieldName,
-              name: fieldName,
-              className: 'form-control',
-              rows: '10',
-              required: this.props.config.required,
-              value: this.state.value,
-              onChange: function(e){this.setState({value: e.target.value});}.bind(this)
-            })
+            [
+              d.textarea({
+                id: fieldName,
+                name: fieldName,
+                className: 'form-control',
+                rows: '10',
+                required: this.props.config.required,
+                value: this.state.value,
+                onChange: function(e){this.setState({value: e.target.value});}.bind(this)
+              }),
+              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+            ]
           )
         ]
       )
@@ -322,19 +327,22 @@ define(['jquery', 'react'], function($, React){
       return d.div({className: 'form-group', key: fieldName}, [
         HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
         d.div({key: key(), className: wrapperClassName},
-          d.select(
-            {
-              id: fieldName,
-              name: fieldName,
-              className: 'form-control',
-              required: this.props.config.required,
-              value: this.state.value,
-              onChange: function(e){this.setState({value: e.target.value});}.bind(this)
-            },
-            options.map(function(choice){
-              return d.option({key: key(), value: choice[1]}, choice[0])
-            })
-          )
+          [
+            d.select(
+              {
+                id: fieldName,
+                name: fieldName,
+                className: 'form-control',
+                required: this.props.config.required,
+                value: this.state.value,
+                onChange: function(e){this.setState({value: e.target.value});}.bind(this)
+              },
+              options.map(function(choice){
+                return d.option({key: key(), value: choice[1]}, choice[0])
+              })
+            ),
+            this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+          ]
         )
       ]);
     },
@@ -398,7 +406,8 @@ define(['jquery', 'react'], function($, React){
                 checked: this.state.value,
                 onChange: function(e){this.setState({value: e.target.checked});}.bind(this)
               }),
-              d.span({key: key()}, this.props.config.title)
+              d.span({key: key()}, this.props.config.title),
+              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
             ])
           )
         )
