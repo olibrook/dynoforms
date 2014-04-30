@@ -9,6 +9,33 @@ define(['jquery', 'react'], function($, React){
 
     displayName: 'Form',
 
+    getInitialState: function(){
+      return {
+        error: null // Non-field errors
+      }
+    },
+
+    setErrors: function(data){
+      var k,
+          error;
+      for(k in this.refs){
+        if(this.refs.hasOwnProperty(k)){
+          if(data.hasOwnProperty(k)){
+            error = data[k];
+          } else {
+            error = null;
+          }
+          this.refs[k].setState({error: data[k]});
+        }
+      }
+      if(data.hasOwnProperty('__all__')){
+        error = data['__all__']
+      } else {
+        error = null;
+      }
+      this.setState({error: error});
+    },
+
     setValue: function(data) {
       var k;
       for(k in this.refs){
@@ -42,6 +69,7 @@ define(['jquery', 'react'], function($, React){
     render: function() {
       var cols = {left: this.props.cols.left, right: this.props.cols.right},
           orderedFields,
+          renderedFields,
           key;
 
       // Work out field ordering, if specified.
@@ -56,14 +84,21 @@ define(['jquery', 'react'], function($, React){
         }
       }
 
+      renderedFields = orderedFields.map(function(fieldName){
+        return this.renderField(
+            fieldName,
+            this.props.config.properties[fieldName],
+            {cols: cols}
+        )
+      }, this);
+
       return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'},
-        orderedFields.map(function(fieldName){
-          return this.renderField(
-              fieldName,
-              this.props.config.properties[fieldName],
-              {cols: cols}
-          )
-        }, this)
+        [
+          this.state.error ? d.p({className: 'bg-danger', style: {textAlign: 'center'}}, this.state.error) : ''
+        ]
+        .concat(
+          renderedFields
+        )
         .concat([
           Submit({key: 'submit', cols: cols})
         ])
@@ -149,7 +184,8 @@ define(['jquery', 'react'], function($, React){
     },
 
     render: function(){
-      var label = this.props.config.title,
+      var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
+          label = this.props.config.title,
           fieldName = this.props.config.fieldName,
           count = 0;
 
@@ -157,11 +193,12 @@ define(['jquery', 'react'], function($, React){
         return fieldName + count++;
       }
 
-      return d.div({className: 'form-group'},
+      return d.div({className: className},
         [
           HorizontalLabel({key: key(), label: label, 'htmlFor': fieldName, cols: this.props.cols}),
           d.div({key: key(), className: 'col-lg-' + this.props.cols.left},
             [
+              this.state.error ? HelpText({helpText: this.state.error}) : '',
               d.input({
                 id: fieldName,
                 name: fieldName,
@@ -233,7 +270,8 @@ define(['jquery', 'react'], function($, React){
     },
 
     render: function(){
-      var wrapperClassName = 'col-lg-' + this.props.cols.right,
+      var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
+          wrapperClassName = 'col-lg-' + this.props.cols.right,
           fieldName = this.props.config.fieldName,
           label = this.props.config.title,
           count = 0;
@@ -242,11 +280,12 @@ define(['jquery', 'react'], function($, React){
         return fieldName + count ++;
       }
 
-      return d.div({className: 'form-group', key: fieldName},
+      return d.div({className: className, key: fieldName},
         [
           HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
           d.div({key: key(), className: wrapperClassName},
             [
+              this.state.error ? HelpText({helpText: this.state.error}) : '',
               d.textarea({
                 id: fieldName,
                 name: fieldName,
@@ -302,7 +341,8 @@ define(['jquery', 'react'], function($, React){
     },
 
     render: function(){
-      var wrapperClassName  = ['col-lg-' + this.props.cols.right].join(' '),
+      var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
+          wrapperClassName  = ['col-lg-' + this.props.cols.right].join(' '),
           options,
           i,
           label = this.props.config.title,
@@ -324,10 +364,11 @@ define(['jquery', 'react'], function($, React){
 
       this.validateChoices(options, this.props.config.enum);
 
-      return d.div({className: 'form-group', key: fieldName}, [
+      return d.div({className: className, key: fieldName}, [
         HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
         d.div({key: key(), className: wrapperClassName},
           [
+            this.state.error ? HelpText({helpText: this.state.error}) : '',
             d.select(
               {
                 id: fieldName,
@@ -385,7 +426,8 @@ define(['jquery', 'react'], function($, React){
     },
 
     render: function(){
-      var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' '),
+      var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
+          wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' '),
           fieldName = this.props.config.fieldName,
           count = 0;
 
@@ -393,22 +435,25 @@ define(['jquery', 'react'], function($, React){
         return fieldName + count++;
       }
 
-      return d.div({className: 'form-group'},
+      return d.div({className: className},
         d.div({className: wrapperClassName},
           d.div({className: 'checkbox'},
-            d.label({}, [
-              d.input({
-                name: fieldName,
-                id: fieldName,
-                type: 'checkbox',
-                key: key(),
-                required: this.props.config.required,
-                checked: this.state.value,
-                onChange: function(e){this.setState({value: e.target.checked});}.bind(this)
-              }),
-              d.span({key: key()}, this.props.config.title),
-              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
-            ])
+            d.label({},
+              [
+                this.state.error ? HelpText({helpText: this.state.error}) : '',
+                d.input({
+                  name: fieldName,
+                  id: fieldName,
+                  type: 'checkbox',
+                  key: key(),
+                  required: this.props.config.required,
+                  checked: this.state.value,
+                  onChange: function(e){this.setState({value: e.target.checked});}.bind(this)
+                }),
+                d.span({key: key()}, this.props.config.title),
+                this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+              ]
+            )
           )
         )
       )

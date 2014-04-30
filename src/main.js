@@ -68,57 +68,57 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
   },
 
   // Configure form options like this
-    formConfig = {
-      properties: {
-        "gender": {
-          choices: [
-            ['Male', 'male'],
-            ['Female', 'female']
-          ],
-          helpText: 'The gender of a human'
-        },
-        "num_siblings": {
-          choices: [
-            ['One', 1],
-            ['Two', 2],
-            ['Three', 3]
-          ],
-          helpText: 'Brothers and sisters only'
-        },
-        "content_tree_order": {
-          helpText: 'The items order in the page'
-        },
-        "updated": {
-          helpText: 'When this item was last updated'
-        },
-        "linked_url_node_keys": {
-          helpText: 'Other pages which link to this'
-        },
-        "created": {
-          helpText: 'Datetime when this item was first created'
-        },
-        "currently_cacheable": {
-          helpText: 'Can this item currently be cached?'
-        },
-        "content_tree_parent": {
-          helpText: 'Id of the parent content node'
-        },
-        "content": {
-          helpText: 'Markdown-formatted text'
-        }
+  formConfig = {
+    properties: {
+      "gender": {
+        choices: [
+          ['Male', 'male'],
+          ['Female', 'female']
+        ],
+        helpText: 'The gender of a human'
       },
-      order: [
-        'gender',
-        'content',
-        'content_tree_order',
-        'num_siblings',
-        'updated',
-        'linked_url_node_keys',
-        'created',
-        'currently_cacheable',
-        'content_tree_parent'
-      ]
+      "num_siblings": {
+        choices: [
+          ['One', 1],
+          ['Two', 2],
+          ['Three', 3]
+        ],
+        helpText: 'Brothers and sisters only'
+      },
+      "content_tree_order": {
+        helpText: 'The items order in the page'
+      },
+      "updated": {
+        helpText: 'When this item was last updated'
+      },
+      "linked_url_node_keys": {
+        helpText: 'Other pages which link to this'
+      },
+      "created": {
+        helpText: 'Datetime when this item was first created'
+      },
+      "currently_cacheable": {
+        helpText: 'Can this item currently be cached?'
+      },
+      "content_tree_parent": {
+        helpText: 'Id of the parent content node'
+      },
+      "content": {
+        helpText: 'Markdown-formatted text'
+      }
     },
+    order: [
+      'gender',
+      'content',
+      'content_tree_order',
+      'num_siblings',
+      'updated',
+      'linked_url_node_keys',
+      'created',
+      'currently_cacheable',
+      'content_tree_parent'
+    ]
+  },
 
   testInstance = {
     "gender": "female",
@@ -134,18 +134,25 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
 
   form = React.renderComponent(dynoforms.Dynoform(
     {config: dynoforms.mergeConfigs(testSchema, formConfig)}
-  ), $('.dynoform')[0]);
+  ), $('.dynoform')[0]),
 
-//  form.setValue(testInstance);
+  data;
+
+  // Set the data on the form
+  form.setValue(testInstance);
+
+  // Get the data from the form
+  data = form.getValue();
+
+  // Do validation somewhere else (on the server, perhaps), then
+  // set errors like this
+  form.setErrors({
+    __all__: 'There were non-field errors', // Similar to a Django form
+    content: 'That does not look like valid markdown to us' // Field-specific errors
+  });
+
 
   window.form = form;
   window.React = React;
 
-//  form = new dynoforms.Form(testSchema, formConfig, testInstance);
-
-//  console.log(form.getData());
-
-
-
-//  $('.dynoform').append(form.$el);
 });
