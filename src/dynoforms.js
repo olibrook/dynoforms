@@ -5,9 +5,9 @@ define(['jquery', 'react'], function($, React){
 
   var d = React.DOM,
 
-  ReactForm = React.createClass({
+  Form = React.createClass({
 
-    displayName: 'Dynoform',
+    displayName: 'Form',
 
     setValue: function(data) {
       var k;
@@ -65,7 +65,7 @@ define(['jquery', 'react'], function($, React){
           )
         }, this)
         .concat([
-          ReactSubmit({key: 'submit', cols: cols})
+          Submit({key: 'submit', cols: cols})
         ])
       );
     },
@@ -93,25 +93,25 @@ define(['jquery', 'react'], function($, React){
         case 'string':
 
           if(config.format === 'rich-html'){
-            return ReactRichTextInput(props);
+            return RichTextInput(props);
           }
 
           if(config.enum){
-            return ReactSelect(props);
+            return Select(props);
           }
 
-          return ReactStringInput(props);
+          return StringInput(props);
 
         case 'integer':
 
           if(config.enum){
-            return ReactSelect(props);
+            return Select(props);
           }
 
-          return ReactStringInput(props);
+          return StringInput(props);
 
         case 'boolean':
-          return ReactCheckBox(props);
+          return CheckBox(props);
 
         default:
           break;
@@ -130,12 +130,15 @@ define(['jquery', 'react'], function($, React){
   }),
 
 
-  ReactStringInput = React.createClass({
+  StringInput = React.createClass({
 
     displayName: 'StringInput',
 
     getInitialState: function(){
-      return {value: ''}
+      return {
+        value: '',
+        error: null
+      }
     },
 
     setValue: function(value){
@@ -157,8 +160,8 @@ define(['jquery', 'react'], function($, React){
 
       return d.div({className: 'form-group'},
         [
-          ReactHorizontalLabel({key: key(), label: label, 'htmlFor': fieldName, cols: this.props.cols}),
-          d.div({key: key(), className: 'col-lg-' + this.props.cols.left},
+          HorizontalLabel({key: key(), label: label, 'htmlFor': fieldName, cols: this.props.cols}),
+          d.div({key: key(), className: 'col-lg-' + this.props.cols.left}, [
             d.input({
               id: fieldName,
               name: fieldName,
@@ -168,7 +171,7 @@ define(['jquery', 'react'], function($, React){
               value: this.state.value,
               onChange: function(e){this.setState({value: e.target.value});}.bind(this)
             })
-          )
+          ])
         ]
       );
     },
@@ -188,8 +191,8 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
-  ReactHorizontalLabel = React.createClass({
-    displayName: 'ReactHorizontalLabel',
+  HorizontalLabel = React.createClass({
+    displayName: 'HorizontalLabel',
 
     render: function(){
       return d.label({
@@ -201,11 +204,22 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
-  ReactRichTextInput = React.createClass({
-    displayName: 'ReactRichTextInput',
+  HelpText = React.createClass({
+    displayName: 'HelpText',
+
+    render: function(){
+      return d.span({className: 'help-block'}, this.props.helpText)
+    }
+  }),
+
+  RichTextInput = React.createClass({
+    displayName: 'RichTextInput',
 
     getInitialState: function(){
-      return {value: ''}
+      return {
+        value: '',
+        error: null
+      }
     },
 
     setValue: function(value){
@@ -219,6 +233,7 @@ define(['jquery', 'react'], function($, React){
     render: function(){
       var wrapperClassName = 'col-lg-' + this.props.cols.right,
           fieldName = this.props.config.fieldName,
+          label = this.props.config.title,
           count = 0;
 
       function key(){
@@ -227,7 +242,7 @@ define(['jquery', 'react'], function($, React){
 
       return d.div({className: 'form-group', key: fieldName},
         [
-          ReactHorizontalLabel({key: key(), label: 'ReactRichTextInput', htmlFor: fieldName, cols: this.props.cols}),
+          HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
           d.div({key: key(), className: wrapperClassName},
             d.textarea({
               id: fieldName,
@@ -244,8 +259,8 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
-  ReactSubmit = React.createClass({
-    displayName: 'ReactSubmit',
+  Submit = React.createClass({
+    displayName: 'Submit',
 
     render: function(){
       var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' ');
@@ -262,12 +277,15 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
-  ReactSelect = React.createClass({
-    displayName: 'ReactSelect',
+  Select = React.createClass({
+    displayName: 'Select',
 
     // TODO: Pick sensible default
     getInitialState: function(){
-      return {value: ''}
+      return {
+        value: '',
+        error: null
+      }
     },
 
     setValue: function(value){
@@ -302,7 +320,7 @@ define(['jquery', 'react'], function($, React){
       this.validateChoices(options, this.props.config.enum);
 
       return d.div({className: 'form-group', key: fieldName}, [
-        ReactHorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
+        HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
         d.div({key: key(), className: wrapperClassName},
           d.select(
             {
@@ -339,12 +357,15 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
-  ReactCheckBox = React.createClass({
+  CheckBox = React.createClass({
 
-    displayName: 'ReactCheckBox',
+    displayName: 'CheckBox',
 
     getInitialState: function(){
-      return {value: ''}
+      return {
+        value: '',
+        error: null
+      }
     },
 
     setValue: function(value){
@@ -412,7 +433,7 @@ define(['jquery', 'react'], function($, React){
   }
 
   return {
-    Dynoform: ReactForm,
+    Dynoform: Form,
     mergeConfigs: mergeConfigs
   };
 
