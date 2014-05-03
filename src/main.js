@@ -151,8 +151,6 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
     content: 'That does not look like valid markdown to us' // Field-specific errors
   });
 
-
   window.form = form;
   window.React = React;
-
 });

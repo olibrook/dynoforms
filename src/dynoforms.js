@@ -121,29 +121,22 @@ define(['jquery', 'react'], function($, React){
       switch(config.type){
 
         case 'array':
-          // TODO: Need a usable, comma-separated field.
-          return '';
-          throw new Error('No array input available');
+          return ArrayInput(props);
 
         case 'string':
-
           if(config.format === 'rich-html'){
             return RichTextInput(props);
           }
-
           if(config.enum){
             return Select(props);
           }
-
-          return StringInput(props);
+          return TextInput(props);
 
         case 'integer':
-
           if(config.enum){
             return Select(props);
           }
-
-          return StringInput(props);
+          return NumberInput(props);
 
         case 'boolean':
           return CheckBox(props);
@@ -163,24 +156,13 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
-
-  StringInput = React.createClass({
-
-    displayName: 'StringInput',
+  SimpleInputMixin = {
 
     getInitialState: function(){
       return {
         value: '',
         error: null
       }
-    },
-
-    setValue: function(value){
-      this.setState({value: value});
-    },
-
-    getValue: function(){
-      return this.state.value;
     },
 
     render: function(){
@@ -202,7 +184,7 @@ define(['jquery', 'react'], function($, React){
               d.input({
                 id: fieldName,
                 name: fieldName,
-                type: this.getType(this.props.config),
+                type: this.getInputType(),
                 className: 'form-control',
                 required: this.props.config.required,
                 value: this.state.value,
@@ -213,22 +195,85 @@ define(['jquery', 'react'], function($, React){
           )
         ]
       );
+    }
+  },
+
+  TextInput = React.createClass({
+
+    displayName: 'TextInput',
+
+    mixins: [SimpleInputMixin],
+
+    setValue: function(value){
+      this.setState({value: value});
     },
 
-    getType: function(config){
-      switch(config.type){
-        case 'string':
-          switch (config.format){
-            case "date-time": return "date-time";
-            case "rich-html": return "text";
-          }
-          return "text";
-        case 'array':   return "text";
-        case 'integer': return "number";
-        default: throw new Error('Type not supported: "' + [config.type, config.format] + '"');
-      }
+    getValue: function(){
+      return this.state.value;
+    },
+
+    getInputType: function(){
+      return 'text';
     }
   }),
+
+  DateTimeInput = React.createClass({
+
+    displayName: 'DateTimeInput',
+
+    mixins: [SimpleInputMixin],
+
+    setValue: function(value){
+      this.setState({value: value});
+    },
+
+    getValue: function(){
+      return this.state.value;
+    },
+
+    getInputType: function(){
+      return 'datetime';
+    }
+  }),
+
+  NumberInput = React.createClass({
+
+    displayName: 'NumberInput',
+
+    mixins: [SimpleInputMixin],
+
+    setValue: function(value){
+      this.setState({value: value});
+    },
+
+    getValue: function(){
+      return this.state.value;
+    },
+
+    getInputType: function(){
+      return 'number';
+    }
+  }),
+
+  ArrayInput = React.createClass({
+
+    displayName: 'ArrayInput',
+
+    mixins: [SimpleInputMixin],
+
+    setValue: function(value){
+      this.setState({value: value.join(', ')});
+    },
+
+    getValue: function(){
+      return this.state.value.split(', ');
+    },
+
+    getInputType: function(){
+      return 'text';
+    }
+  }),
+
 
   HorizontalLabel = React.createClass({
     displayName: 'HorizontalLabel',
