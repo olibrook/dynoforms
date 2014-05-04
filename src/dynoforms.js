@@ -29,7 +29,12 @@ define(['jquery', 'react'], function($, React){
         return new FieldSet(props);
 
       case 'array':
-        return new ArrayInput(props);
+
+        if(['string', 'integer', 'number'].indexOf(config.items.type) >= 0){
+          return new CommaSeperatedInput(props);
+        } else {
+          return new ArrayInput(props);
+        }
 
       case 'string':
         if(config.format === 'rich-html'){
@@ -71,7 +76,7 @@ define(['jquery', 'react'], function($, React){
       this.refs[this.ROOT_REF].setValue(data);
     },
 
-    getValue: function(data){
+    getValue: function(){
       return this.refs[this.ROOT_REF].getValue();
     },
 
@@ -285,6 +290,44 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
+  CommaSeperatedInput = React.createClass({
+    displayName: 'CommaSeperatedInput',
+    mixins: [SimpleInputMixin],
+
+    toForm: function(value){
+      return value.join(', ');
+    },
+
+    toJS: function(value){
+      var type = this.props.config.items.type;
+
+      return value.split(', ').map(function(v){
+        if(type === 'string'){
+          return v;
+        }
+        else if(type === 'integer'){
+          return parseInt(v, 10);
+        }
+        else if(type === 'number'){
+          return parseFloat(v);
+        }
+        else {throw new Error('Invalid type for comma seperated input, ' + type);}
+      }, this);
+    },
+
+    getInputType: function(){
+      return 'text';
+    },
+
+    setValue: function(value){
+      this.setState({value: this.toForm(value)});
+    },
+
+    getValue: function(){
+      return this.toJS(this.state.value);
+    }
+  }),
+
   ArrayInput = React.createClass({
 
     displayName: 'ArrayInput',
@@ -342,15 +385,26 @@ define(['jquery', 'react'], function($, React){
       return d.div({className: 'form-group'},
         [HorizontalLabel({label: this.props.config.title, cols: this.props.cols})],
         d.div({className: 'col-lg-' + this.props.cols.right},
-          items.concat([
-              d.div({className: 'col-lg-' + this.props.cols.left}, ''),
-              d.div({className: 'col-lg-' + this.props.cols.right},
-                d.a({style: {display: 'block'}}, "Add another item")
-              )
-            ]
+          d.div({className: 'array-items'},
+            items.concat([
+                d.div({className: 'form-group'},
+                  [
+                    d.div({className: 'col-lg-' + this.props.cols.left}, ''),
+                    d.div({className: 'col-lg-' + this.props.cols.right, style: {textAlign: 'right'}},
+                      d.a({href:"#", className: 'btn btn-default', onClick: this.onAddItemClick}, "Add another item")
+                    )
+                  ]
+                )
+              ]
+            )
           )
         )
       )
+    },
+
+    onAddItemClick: function(e){
+      e.preventDefault();
+      this.setState({count: this.state.count + 1});
     }
   }),
 
@@ -435,7 +489,7 @@ define(['jquery', 'react'], function($, React){
       var wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' ');
 
       return d.div({className: 'form-group'},
-        d.div({className: wrapperClassName},
+        d.div({className: wrapperClassName, style: {textAlign: 'right'}},
           d.input({
             type: 'submit',
             value: 'submit',
