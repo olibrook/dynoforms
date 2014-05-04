@@ -63,6 +63,22 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
         "type": "string",
         "title": "Content",
         "format": "rich-html"
+      },
+      "nested": {
+        "title": "Container Content Node",
+        "type": "object",
+        "properties": {
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female"],
+            "title": "Gender"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "format": "rich-html"
+          }
+        }
       }
     }
   },
@@ -116,7 +132,8 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
       'linked_url_node_keys',
       'created',
       'currently_cacheable',
-      'content_tree_parent'
+      'content_tree_parent',
+      'nested'
     ]
   },
 

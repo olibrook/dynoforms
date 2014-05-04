@@ -3,11 +3,63 @@ define(['jquery', 'react'], function($, React){
 
   'use strict';
 
-  var d = React.DOM,
+  var
+
+  d = React.DOM,
+
+  /**
+   * Recursive field renderer
+   */
+  render = function(ref, config, layoutParams){
+    var props;
+
+    config = $.extend({}, config, {
+      required: false, // TODO: broken
+      fieldName: ref // TODO: Probably not necessary
+    });
+
+    props = $.extend({}, layoutParams, {
+      config: config,
+      ref: ref
+    });
+
+    switch(config.type){
+
+      case 'object':
+        return new FieldSet(props);
+
+      case 'array':
+        return new ArrayInput(props);
+
+      case 'string':
+        if(config.format === 'rich-html'){
+          return new RichTextInput(props);
+        }
+        if(config.enum){
+          return new Select(props);
+        }
+        return new TextInput(props);
+
+      case 'integer':
+        if(config.enum){
+          return new Select(props);
+        }
+        return new NumberInput(props);
+
+      case 'boolean':
+        return new CheckBox(props);
+
+      default:
+        break;
+    }
+    throw new Error();
+  },
 
   Form = React.createClass({
 
     displayName: 'Form',
+
+    ROOT_REF: 'root',
 
     getInitialState: function(){
       return {
@@ -15,19 +67,19 @@ define(['jquery', 'react'], function($, React){
       }
     },
 
+    setValue: function(data){
+      this.refs[this.ROOT_REF].setValue(data);
+    },
+
+    getValue: function(data){
+      return this.refs[this.ROOT_REF].getValue();
+    },
+
     setErrors: function(data){
-      var k,
-          error;
-      for(k in this.refs){
-        if(this.refs.hasOwnProperty(k)){
-          if(data.hasOwnProperty(k)){
-            error = data[k];
-          } else {
-            error = null;
-          }
-          this.refs[k].setState({error: data[k]});
-        }
-      }
+      var error;
+
+      this.refs[this.ROOT_REF].setErrors(data);
+
       if(data.hasOwnProperty('__all__')){
         error = data['__all__']
       } else {
@@ -36,115 +88,8 @@ define(['jquery', 'react'], function($, React){
       this.setState({error: error});
     },
 
-    setValue: function(data) {
-      var k;
-      for(k in this.refs){
-        if(this.refs.hasOwnProperty(k) && data.hasOwnProperty(k)){
-          this.refs[k].setValue(data[k]);
-        }
-      }
-    },
-
-    getValue: function() {
-      var k,
-          ret = {};
-
-      for(k in this.refs){
-        if(this.refs.hasOwnProperty(k)){
-          ret[k] = this.refs[k].getValue();
-        }
-      }
-      return ret;
-    },
-
-    getDefaultProps: function() {
-      return {
-        cols: {
-          left: 2,
-          right: 10
-        }
-      };
-    },
-
-    render: function() {
-      var cols = {left: this.props.cols.left, right: this.props.cols.right},
-          orderedFields,
-          renderedFields,
-          key;
-
-      // Work out field ordering, if specified.
-      if(exists(this.props.config.order)){
-        orderedFields = this.props.config.order;
-      } else {
-        orderedFields = [];
-        for(key in this.props.config.properties){
-          if(this.props.config.properties.hasOwnProperty(key)){
-            orderedFields.push(key);
-          }
-        }
-      }
-
-      renderedFields = orderedFields.map(function(fieldName){
-        return this.renderField(
-            fieldName,
-            this.props.config.properties[fieldName],
-            {cols: cols}
-        )
-      }, this);
-
-      return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'},
-        [
-          this.state.error ? d.p({className: 'bg-danger', style: {textAlign: 'center'}}, this.state.error) : ''
-        ]
-        .concat(
-          renderedFields
-        )
-        .concat([
-          Submit({key: 'submit', cols: cols})
-        ])
-      );
-    },
-
-    renderField: function(fieldName, config, props){
-
-      config = $.extend({}, config, {
-        fieldName: fieldName,
-        required: this.props.config.required.indexOf(fieldName) >= 0
-      });
-
-      props = $.extend({}, props, {
-        config: config,
-        key: config.fieldName,
-        ref: fieldName
-      });
-
-      switch(config.type){
-
-        case 'array':
-          return ArrayInput(props);
-
-        case 'string':
-          if(config.format === 'rich-html'){
-            return RichTextInput(props);
-          }
-          if(config.enum){
-            return Select(props);
-          }
-          return TextInput(props);
-
-        case 'integer':
-          if(config.enum){
-            return Select(props);
-          }
-          return NumberInput(props);
-
-        case 'boolean':
-          return CheckBox(props);
-
-        default:
-          break;
-      }
-      throw new Error();
+    getErrors: function(){
+      this.refs[this.ROOT_REF].getErrors();
     },
 
     onSubmit: function(event){
@@ -153,6 +98,21 @@ define(['jquery', 'react'], function($, React){
 
     onChange: function(event){
       alert(event.target.value);
+    },
+
+    render: function() {
+      var layoutConfig = {
+        cols: {
+          left: 2,
+          right: 10
+        }
+      };
+
+      return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'}, [
+          this.state.error ? d.p({className: 'bg-danger', style: {textAlign: 'center'}}, this.state.error) : '',
+          render(this.ROOT_REF, this.props.config, layoutConfig),
+          new Submit(layoutConfig)
+      ]);
     }
   }),
 
@@ -197,6 +157,76 @@ define(['jquery', 'react'], function($, React){
       );
     }
   },
+
+  FieldSet = React.createClass({
+    displayName: 'FieldSet',
+
+    setErrors: function(data){
+      var k,
+          error;
+      for(k in this.refs){
+        if(this.refs.hasOwnProperty(k)){
+          if(data.hasOwnProperty(k)){
+            error = data[k];
+          } else {
+            error = null;
+          }
+          this.refs[k].setState({error: data[k]});
+        }
+      }
+    },
+
+    setValue: function(data) {
+      var k;
+      for(k in this.refs){
+        if(this.refs.hasOwnProperty(k) && data.hasOwnProperty(k)){
+          this.refs[k].setValue(data[k]);
+        }
+      }
+    },
+
+    getValue: function() {
+      var k,
+          ret = {};
+
+      for(k in this.refs){
+        if(this.refs.hasOwnProperty(k)){
+          ret[k] = this.refs[k].getValue();
+        }
+      }
+      return ret;
+    },
+
+    render: function() {
+      var orderedFields,
+          key,
+          layoutConfig;
+
+      // Work out field ordering, if specified.
+      if(exists(this.props.config.order)){
+        orderedFields = this.props.config.order;
+      } else {
+        orderedFields = [];
+        for(key in this.props.config.properties){
+          if(this.props.config.properties.hasOwnProperty(key)){
+            orderedFields.push(key);
+          }
+        }
+      }
+
+      layoutConfig = {cols: this.props.cols};
+
+      return d.fieldset({},
+          orderedFields.map(function(fieldName){
+            return render(
+                fieldName,
+                this.props.config.properties[fieldName],
+                layoutConfig
+            )
+          }, this)
+      );
+    }
+  }),
 
   TextInput = React.createClass({
 
