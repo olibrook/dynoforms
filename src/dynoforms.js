@@ -8,7 +8,22 @@ define(['jquery', 'react'], function($, React){
   d = React.DOM,
 
   /**
-   * Recursive field renderer
+   * Recursive rendering function, returns a React component
+   * representing a field or collection of fields.
+   *
+   * Each component must have the specified ref and have the following
+   * methods:
+   *
+   *   getData()
+   *   setData()
+   *   setErrors()
+   *
+   * This is the main rendering function. Called recursively it can render
+   * entire forms.
+   *
+   * @param ref String
+   * @param config Object, config for the field/collection
+   * @layoutParams Object, extra layout parameters, passed through props
    */
   render = function(ref, config, layoutParams){
     var props;
@@ -60,6 +75,10 @@ define(['jquery', 'react'], function($, React){
     throw new Error();
   },
 
+  /**
+   * Outermost component of a form, this is the component
+   * users are most likely to use.
+   */
   Form = React.createClass({
 
     displayName: 'Form',
