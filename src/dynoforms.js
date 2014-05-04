@@ -138,7 +138,7 @@ define(['jquery', 'react'], function($, React){
       return d.div({className: className},
         [
           HorizontalLabel({key: key(), label: label, 'htmlFor': fieldName, cols: this.props.cols}),
-          d.div({key: key(), className: 'col-lg-' + this.props.cols.left},
+          d.div({key: key(), className: 'col-lg-' + this.props.cols.right},
             [
               this.state.error ? HelpText({helpText: this.state.error}) : '',
               d.input({
@@ -289,18 +289,68 @@ define(['jquery', 'react'], function($, React){
 
     displayName: 'ArrayInput',
 
-    mixins: [SimpleInputMixin],
+    getInitialState: function(){
+      return {
+        count: 0
+      }
+    },
 
     setValue: function(value){
-      this.setState({value: value.join(', ')});
+      var i,
+          item;
+
+      this.setState({count: value.length});
+      for(i=0; i<value.length; i+=1){
+        item = this.refs[i.toString()];
+        item.setValue(value[i]);
+      }
     },
 
     getValue: function(){
-      return this.state.value.split(', ');
+      var i,
+          value;
+      value = [];
+      for(i=0; i<this.state.count; i+=1){
+        value.push(this.refs[i.toString()].getValue());
+      }
+      return value;
     },
 
-    getInputType: function(){
-      return 'text';
+    render: function(){
+      var items,
+          i,
+          layoutConfig,
+          props;
+
+
+      layoutConfig = {cols: this.props.cols};
+
+      items = [];
+
+      for(i=0; i<this.state.count; i+=1){
+        props = $.extend({}, this.props.config.items, {
+          title: i.toString()
+        });
+        items.push(
+          render(
+              i.toString(),
+              props,
+              layoutConfig
+          )
+        )
+      }
+      return d.div({className: 'form-group'},
+        [HorizontalLabel({label: this.props.config.title, cols: this.props.cols})],
+        d.div({className: 'col-lg-' + this.props.cols.right},
+          items.concat([
+              d.div({className: 'col-lg-' + this.props.cols.left}, ''),
+              d.div({className: 'col-lg-' + this.props.cols.right},
+                d.a({style: {display: 'block'}}, "Add another item")
+              )
+            ]
+          )
+        )
+      )
     }
   }),
 

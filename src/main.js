@@ -65,18 +65,21 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
         "format": "rich-html"
       },
       "nested": {
-        "title": "Container Content Node",
-        "type": "object",
-        "properties": {
-          "gender": {
-            "type": "string",
-            "enum": ["male", "female"],
-            "title": "Gender"
-          },
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "format": "rich-html"
+        "type": "array",
+        "title": "Nested people",
+        "items": {
+          "type": "object",
+          "properties": {
+            "gender": {
+              "type": "string",
+              "enum": ["male", "female"],
+              "title": "Gender"
+            },
+            "content": {
+              "type": "string",
+              "title": "Content",
+              "format": "rich-html"
+            }
           }
         }
       }
@@ -146,7 +149,17 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
     "created": "25/12/1983",
     "currently_cacheable": true,
     "content_tree_parent": "123456789",
-    "content": "<h1>Hello World!</h1>"
+    "content": "<h1>Hello World!</h1>",
+    "nested": [
+      {
+        "gender": "male",
+        "content": "Content about a male"
+      },
+      {
+        "gender": "female",
+        "content": "Content about a female"
+      }
+    ]
   },
 
   form = React.renderComponent(dynoforms.Dynoform(
