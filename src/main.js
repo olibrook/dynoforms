@@ -180,8 +180,13 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
     __all__: 'There were non-field errors', // Similar to a Django form
     content: 'That does not look like valid markdown to us', // Field-specific errors
     nested: [
-      {gender: 'Not a valid item'},
-      {content: 'Not valid content'}
+      {
+        __all__: 'There were non-field errors on this nested object!',
+        gender: 'Not a valid item'
+      },
+      {
+        content: 'Not valid content'
+      }
     ]
   });
 

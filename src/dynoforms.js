@@ -8,81 +8,81 @@ define(['jquery', 'react'], function($, React){
   d = React.DOM,
 
   /**
-   * Recursive rendering function, returns a React component
-   * representing a field or collection of fields.
-   *
-   * Each component must have the specified ref and have the following
-   * methods:
-   *
-   *   getData()
-   *   setData()
-   *   setErrors()
-   *
-   * This is the main rendering function. Called recursively it can render
-   * entire forms.
-   *
-   * @param config Object, config for the field/collection
-   * @param props Object, props for the created component
-   */
-  render = function(config, props){
-
-    if((props.key === undefined) || (props.ref === undefined)){
-      throw new Error('Props requires key and ref');
-    }
-
-    config = $.extend({}, config, {
-      required: false, // TODO: broken
-      fieldName: props.ref // TODO: Probably not necessary. Move this on to props.
-    });
-
-    props = $.extend({}, props, {
-      config: config
-    });
-
-    switch(config.type){
-
-      case 'object':
-        return new FieldSet(props);
-
-      case 'array':
-        if(['string', 'integer', 'number'].indexOf(config.items.type) >= 0){
-          return new CommaSeperatedInput(props);
-        } else {
-          return new ArrayInput(props);
-        }
-
-      case 'string':
-        if(config.format === 'rich-html'){
-          return new RichTextInput(props);
-        }
-        if(config.enum){
-          return new Select(props);
-        }
-        return new TextInput(props);
-
-      case 'integer':
-        if(config.enum){
-          return new Select(props);
-        }
-        return new NumberInput(props);
-
-      case 'boolean':
-        return new CheckBox(props);
-
-      default:
-        break;
-    }
-    throw new Error();
-  },
-
-  /**
-   * Outermost component of a form, this is the component
-   * users are most likely to use.
+   * A JSON-schema configurable form.
    */
   Form = React.createClass({
 
-    displayName: 'Form',
+    statics: {
 
+      /**
+       * Recursive rendering function, returns a React component which
+       * implements FormComponent and is a field or collection of fields.
+       *
+       * This is the main rendering function. Called recursively it renders
+       * entire forms.
+       *
+       * All Form components must implement this interface:
+       *
+       *     getValue: function(){},
+       *     setValue: function(value){},
+       *     setErrors: function(errors){}
+       *
+       * @param config Object, config for the field/collection
+       * @param props Object, props for the created component
+       */
+      renderRecursive: function(config, props){
+
+        if((props.key === undefined) || (props.ref === undefined)){
+          throw new Error('Props requires key and ref');
+        }
+
+        config = $.extend({}, config, {
+          required: false, // TODO: broken
+          fieldName: props.ref // TODO: Probably not necessary. Move this on to props.
+        });
+
+        props = $.extend({}, props, {
+          config: config
+        });
+
+        switch(config.type){
+
+          case 'object':
+            return new FieldSet(props);
+
+          case 'array':
+            if(['string', 'integer', 'number'].indexOf(config.items.type) >= 0){
+              return new CommaSeperatedInput(props);
+            } else {
+              return new ArrayInput(props);
+            }
+
+          case 'string':
+            if(config.format === 'rich-html'){
+              return new RichTextInput(props);
+            }
+            if(config.enum){
+              return new Select(props);
+            }
+            return new TextInput(props);
+
+          case 'integer':
+            if(config.enum){
+              return new Select(props);
+            }
+            return new NumberInput(props);
+
+          case 'boolean':
+            return new CheckBox(props);
+
+          default:
+            break;
+        }
+        throw new Error();
+      }
+    },
+
+    displayName: 'Form',
     ROOT_REF: 'root',
 
     setValue: function(data){
@@ -95,10 +95,6 @@ define(['jquery', 'react'], function($, React){
 
     setErrors: function(data){
       this.refs[this.ROOT_REF].setErrors(data);
-    },
-
-    getErrors: function(){
-      this.refs[this.ROOT_REF].getErrors();
     },
 
     onSubmit: function(event){
@@ -117,7 +113,7 @@ define(['jquery', 'react'], function($, React){
 
       return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'},
         [
-          render(this.props.config, {
+          Form.renderRecursive(this.props.config, {
             cols: cols,
             ref: this.ROOT_REF,
             key: this.ROOT_REF
@@ -131,6 +127,13 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
+  /**
+   * A mixin for simple single-valued fields.
+   *
+   * Components using this mixin should define getValue() and
+   * setValue() which must handle conversion between JSON values
+   * and the values actually set on a Form component.
+   */
   SimpleInputMixin = {
 
     getInitialState: function(){
@@ -138,6 +141,10 @@ define(['jquery', 'react'], function($, React){
         value: '',
         error: null
       }
+    },
+
+    setErrors: function(errors){
+      this.setState({error: errors});
     },
 
     render: function(){
@@ -169,6 +176,15 @@ define(['jquery', 'react'], function($, React){
     }
   },
 
+  /**
+   * A collection of fields on a form. These can be nested for complex
+   * representations of objects. The value of a FieldSet is always an
+   * Object.
+   *
+   * FieldSet instances support a special error value for '__all__'
+   * which is used to indicate non-field errors for an object, similar
+   * to a Django Form.
+   */
   FieldSet = React.createClass({
     displayName: 'FieldSet',
 
@@ -186,7 +202,7 @@ define(['jquery', 'react'], function($, React){
       for(k in this.refs){
         if(this.refs.hasOwnProperty(k)){
           fieldError = data.hasOwnProperty(k) ? data[k] : null;
-          this.refs[k].setState({error: data[k]});
+          this.refs[k].setErrors(data[k]);
         }
       }
 
@@ -239,7 +255,7 @@ define(['jquery', 'react'], function($, React){
             ref: fieldName,
             cols: this.props.cols
           };
-          return render(
+          return Form.renderRecursive(
               this.props.config.properties[fieldName],
               childProps
           )
@@ -394,6 +410,13 @@ define(['jquery', 'react'], function($, React){
       return value;
     },
 
+    setErrors: function(errors){
+      var i;
+      for(i=0; i<errors.length; i+=1){
+        this.refs[i.toString()].setErrors(errors[i]);
+      }
+    },
+
     render: function(){
       var items,
           i,
@@ -408,7 +431,7 @@ define(['jquery', 'react'], function($, React){
           cols: this.props.cols
         };
         items.push(
-          render(
+          Form.renderRecursive(
               this.props.config.items,
               childProps
           )
@@ -484,6 +507,10 @@ define(['jquery', 'react'], function($, React){
       return this.state.value;
     },
 
+    setErrors: function(errors){
+      this.setState({error: errors});
+    },
+
     render: function(){
       var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
           wrapperClassName = 'col-lg-' + this.props.cols.right,
@@ -549,6 +576,10 @@ define(['jquery', 'react'], function($, React){
 
     getValue: function(){
       return this.state.value;
+    },
+
+    setErrors: function(errors){
+      this.setState({error: errors});
     },
 
     render: function(){
@@ -630,6 +661,10 @@ define(['jquery', 'react'], function($, React){
 
     getValue: function(){
       return this.state.value;
+    },
+
+    setErrors: function(errors){
+      this.setState({error: errors});
     },
 
     render: function(){
