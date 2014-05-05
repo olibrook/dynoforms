@@ -52,7 +52,7 @@ define(['jquery', 'react'], function($, React){
 
           case 'array':
             if(['string', 'integer', 'number'].indexOf(config.items.type) >= 0){
-              return new CommaSeperatedInput(props);
+              return new CommaSeparatedInput(props);
             } else {
               return new ArrayInput(props);
             }
@@ -341,8 +341,8 @@ define(['jquery', 'react'], function($, React){
     }
   }),
 
-  CommaSeperatedInput = React.createClass({
-    displayName: 'CommaSeperatedInput',
+  CommaSeparatedInput = React.createClass({
+    displayName: 'CommaSeparatedInput',
     mixins: [SimpleInputMixin],
 
     toForm: function(value){
