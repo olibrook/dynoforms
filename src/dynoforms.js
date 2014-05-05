@@ -85,12 +85,6 @@ define(['jquery', 'react'], function($, React){
 
     ROOT_REF: 'root',
 
-    getInitialState: function(){
-      return {
-        error: null // Non-field errors
-      }
-    },
-
     setValue: function(data){
       this.refs[this.ROOT_REF].setValue(data);
     },
@@ -100,16 +94,7 @@ define(['jquery', 'react'], function($, React){
     },
 
     setErrors: function(data){
-      var error;
-
       this.refs[this.ROOT_REF].setErrors(data);
-
-      if(data.hasOwnProperty('__all__')){
-        error = data['__all__']
-      } else {
-        error = null;
-      }
-      this.setState({error: error});
     },
 
     getErrors: function(){
@@ -130,14 +115,8 @@ define(['jquery', 'react'], function($, React){
           right: 10
         };
 
-      return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'}, [
-          this.state.error ?
-            d.div({
-              key: 'non-field-errors',
-              className: 'alert alert-danger',
-              style: {textAlign: 'center'}
-            }, this.state.error)
-            : '',
+      return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'},
+        [
           render(this.props.config, {
             cols: cols,
             ref: this.ROOT_REF,
@@ -147,7 +126,8 @@ define(['jquery', 'react'], function($, React){
             cols: cols,
             key: 'submit'
           })
-      ]);
+        ]
+      );
     }
   }),
 
@@ -192,19 +172,26 @@ define(['jquery', 'react'], function($, React){
   FieldSet = React.createClass({
     displayName: 'FieldSet',
 
+    getInitialState: function(){
+      return {
+        error: null
+      }
+    },
+
     setErrors: function(data){
       var k,
-          error;
+          fieldError,
+          nonFieldError;
+
       for(k in this.refs){
         if(this.refs.hasOwnProperty(k)){
-          if(data.hasOwnProperty(k)){
-            error = data[k];
-          } else {
-            error = null;
-          }
+          fieldError = data.hasOwnProperty(k) ? data[k] : null;
           this.refs[k].setState({error: data[k]});
         }
       }
+
+      nonFieldError = data.hasOwnProperty('__all__') ? data['__all__'] : null;
+      this.setState({error: nonFieldError});
     },
 
     setValue: function(data) {
@@ -229,10 +216,44 @@ define(['jquery', 'react'], function($, React){
     },
 
     render: function() {
-      var orderedFields,
-          key;
+      var children,
+          orderedFields;
 
-      // Work out field ordering, if specified.
+      children = [];
+      orderedFields = this.getFieldOrder();
+
+      if(this.state.error){
+        children.push(
+          d.div({
+            key: 'non-field-errors',
+            className: 'alert alert-danger',
+            style: {textAlign: 'center'}
+          }, this.state.error)
+        )
+      }
+
+      children = children.concat(
+        orderedFields.map(function(fieldName){
+          var childProps = {
+            key: fieldName,
+            ref: fieldName,
+            cols: this.props.cols
+          };
+          return render(
+              this.props.config.properties[fieldName],
+              childProps
+          )
+        }, this)
+      );
+      return d.fieldset({}, children);
+    },
+
+    /**
+     * Work out field ordering, if specified.
+     */
+    getFieldOrder: function(){
+      var orderedFields, key;
+
       if(exists(this.props.config.order)){
         orderedFields = this.props.config.order;
       } else {
@@ -243,20 +264,7 @@ define(['jquery', 'react'], function($, React){
           }
         }
       }
-
-      return d.fieldset({},
-          orderedFields.map(function(fieldName){
-            var childProps = {
-              key: fieldName,
-              ref: fieldName,
-              cols: this.props.cols
-            };
-            return render(
-                this.props.config.properties[fieldName],
-                childProps
-            )
-          }, this)
-      );
+      return orderedFields;
     }
   }),
 
