@@ -21,21 +21,22 @@ define(['jquery', 'react'], function($, React){
    * This is the main rendering function. Called recursively it can render
    * entire forms.
    *
-   * @param ref String
    * @param config Object, config for the field/collection
-   * @layoutParams Object, extra layout parameters, passed through props
+   * @param props Object, props for the created component
    */
-  render = function(ref, config, layoutParams){
-    var props;
+  render = function(config, props){
+
+    if((props.key === undefined) || (props.ref === undefined)){
+      throw new Error('Props requires key and ref');
+    }
 
     config = $.extend({}, config, {
       required: false, // TODO: broken
-      fieldName: ref // TODO: Probably not necessary
+      fieldName: props.ref // TODO: Probably not necessary. Move this on to props.
     });
 
-    props = $.extend({}, layoutParams, {
-      config: config,
-      ref: ref
+    props = $.extend({}, props, {
+      config: config
     });
 
     switch(config.type){
@@ -44,7 +45,6 @@ define(['jquery', 'react'], function($, React){
         return new FieldSet(props);
 
       case 'array':
-
         if(['string', 'integer', 'number'].indexOf(config.items.type) >= 0){
           return new CommaSeperatedInput(props);
         } else {
@@ -125,17 +125,28 @@ define(['jquery', 'react'], function($, React){
     },
 
     render: function() {
-      var layoutConfig = {
-        cols: {
+      var cols = {
           left: 2,
           right: 10
-        }
-      };
+        };
 
       return d.form({onSubmit: this.onSubmit, className: 'form-horizontal', role: 'form'}, [
-          this.state.error ? d.p({className: 'bg-danger', style: {textAlign: 'center'}}, this.state.error) : '',
-          render(this.ROOT_REF, this.props.config, layoutConfig),
-          new Submit(layoutConfig)
+          this.state.error ?
+            d.div({
+              key: 'non-field-errors',
+              className: 'alert alert-danger',
+              style: {textAlign: 'center'}
+            }, this.state.error)
+            : '',
+          render(this.props.config, {
+            cols: cols,
+            ref: this.ROOT_REF,
+            key: this.ROOT_REF
+          }),
+          new Submit({
+            cols: cols,
+            key: 'submit'
+          })
       ]);
     }
   }),
@@ -152,29 +163,25 @@ define(['jquery', 'react'], function($, React){
     render: function(){
       var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
           label = this.props.config.title,
-          fieldName = this.props.config.fieldName,
-          count = 0;
-
-      function key(){
-        return fieldName + count++;
-      }
+          fieldName = this.props.config.fieldName;
 
       return d.div({className: className},
         [
-          HorizontalLabel({key: key(), label: label, 'htmlFor': fieldName, cols: this.props.cols}),
-          d.div({key: key(), className: 'col-lg-' + this.props.cols.right},
+          HorizontalLabel({key: 'label', label: label, 'htmlFor': fieldName, cols: this.props.cols}),
+          d.div({key: 'wrapper', className: 'col-lg-' + this.props.cols.right},
             [
-              this.state.error ? HelpText({helpText: this.state.error}) : '',
+              this.state.error ? HelpText({helpText: this.state.error, key: 'error'}) : '',
               d.input({
                 id: fieldName,
                 name: fieldName,
+                key: fieldName,
                 type: this.getInputType(),
                 className: 'form-control',
                 required: this.props.config.required,
                 value: this.state.value,
                 onChange: function(e){this.setState({value: e.target.value});}.bind(this)
               }),
-              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText, key: 'help-text'}) : ''
             ]
           )
         ]
@@ -223,8 +230,7 @@ define(['jquery', 'react'], function($, React){
 
     render: function() {
       var orderedFields,
-          key,
-          layoutConfig;
+          key;
 
       // Work out field ordering, if specified.
       if(exists(this.props.config.order)){
@@ -238,14 +244,16 @@ define(['jquery', 'react'], function($, React){
         }
       }
 
-      layoutConfig = {cols: this.props.cols};
-
       return d.fieldset({},
           orderedFields.map(function(fieldName){
+            var childProps = {
+              key: fieldName,
+              ref: fieldName,
+              cols: this.props.cols
+            };
             return render(
-                fieldName,
                 this.props.config.properties[fieldName],
-                layoutConfig
+                childProps
             )
           }, this)
       );
@@ -381,43 +389,44 @@ define(['jquery', 'react'], function($, React){
     render: function(){
       var items,
           i,
-          layoutConfig,
-          props;
-
-
-      layoutConfig = {cols: this.props.cols};
+          childProps;
 
       items = [];
 
       for(i=0; i<this.state.count; i+=1){
-        props = $.extend({}, this.props.config.items, {
-          title: i.toString()
-        });
+        childProps = {
+          key: i.toString(),
+          ref: i.toString(),
+          cols: this.props.cols
+        };
         items.push(
           render(
-              i.toString(),
-              props,
-              layoutConfig
+              this.props.config.items,
+              childProps
           )
         )
       }
       return d.div({className: 'form-group'},
-        [HorizontalLabel({label: this.props.config.title, cols: this.props.cols})],
-        d.div({className: 'col-lg-' + this.props.cols.right},
-          d.div({className: 'array-items'},
-            items.concat([
-                d.div({className: 'form-group'},
-                  [
-                    d.div({className: 'col-lg-' + this.props.cols.left}, ''),
-                    d.div({className: 'col-lg-' + this.props.cols.right, style: {textAlign: 'right'}},
-                      d.a({href:"#", className: 'btn btn-default', onClick: this.onAddItemClick}, "Add another item")
+        [
+          HorizontalLabel({label: this.props.config.title, cols: this.props.cols, key: 'label'}),
+          d.div({className: 'col-lg-' + this.props.cols.right, key: 'content'},
+            d.div({className: 'array-items'},
+              items.concat([
+                  d.div({className: 'form-group', key: 'add-item'},
+                    d.div({className: 'col-lg-12', style: {textAlign: 'right'}},
+                      d.button({type: 'button', className: 'btn btn-default', onClick: this.onAddItemClick},
+                        [
+                          d.span({className: 'glyphicon glyphicon-plus'}),
+                          ' Add'
+                        ]
+                      )
                     )
-                  ]
-                )
-              ]
+                  )
+                ]
+              )
             )
           )
-        )
+        ]
       )
     },
 
@@ -471,29 +480,25 @@ define(['jquery', 'react'], function($, React){
       var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
           wrapperClassName = 'col-lg-' + this.props.cols.right,
           fieldName = this.props.config.fieldName,
-          label = this.props.config.title,
-          count = 0;
-
-      function key(){
-        return fieldName + count ++;
-      }
+          label = this.props.config.title;
 
       return d.div({className: className, key: fieldName},
         [
-          HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
-          d.div({key: key(), className: wrapperClassName},
+          HorizontalLabel({key: 'label', label: label, htmlFor: fieldName, cols: this.props.cols}),
+          d.div({key: 'wrapper', className: wrapperClassName},
             [
-              this.state.error ? HelpText({helpText: this.state.error}) : '',
+              this.state.error ? HelpText({helpText: this.state.error, key: 'error'}) : '',
               d.textarea({
                 id: fieldName,
                 name: fieldName,
+                key: fieldName,
                 className: 'form-control',
                 rows: '10',
                 required: this.props.config.required,
                 value: this.state.value,
                 onChange: function(e){this.setState({value: e.target.value});}.bind(this)
               }),
-              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+              this.props.config.helpText ? HelpText({helpText: this.props.config.helpText, key: 'help-text'}) : ''
             ]
           )
         ]
@@ -544,12 +549,7 @@ define(['jquery', 'react'], function($, React){
           options,
           i,
           label = this.props.config.title,
-          fieldName = this.props.config.fieldName,
-          count = 0;
-
-      function key(){
-        return fieldName + count++;
-      }
+          fieldName = this.props.config.fieldName;
 
       if(this.props.config.choices){
         options = this.props.config.choices;
@@ -563,24 +563,25 @@ define(['jquery', 'react'], function($, React){
       this.validateChoices(options, this.props.config.enum);
 
       return d.div({className: className, key: fieldName}, [
-        HorizontalLabel({key: key(), label: label, htmlFor: fieldName, cols: this.props.cols}),
-        d.div({key: key(), className: wrapperClassName},
+        HorizontalLabel({key: 'label', label: label, htmlFor: fieldName, cols: this.props.cols}),
+        d.div({key: 'wrapper', className: wrapperClassName},
           [
-            this.state.error ? HelpText({helpText: this.state.error}) : '',
+            this.state.error ? HelpText({helpText: this.state.error, key: 'help-text'}) : '',
             d.select(
               {
                 id: fieldName,
                 name: fieldName,
+                key: fieldName,
                 className: 'form-control',
                 required: this.props.config.required,
                 value: this.state.value,
                 onChange: function(e){this.setState({value: e.target.value});}.bind(this)
               },
               options.map(function(choice){
-                return d.option({key: key(), value: choice[1]}, choice[0])
+                return d.option({key: choice[1], value: choice[1]}, choice[0])
               })
             ),
-            this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+            this.props.config.helpText ? HelpText({helpText: this.props.config.helpText, key: 'help-text'}) : ''
           ]
         )
       ]);
@@ -626,30 +627,25 @@ define(['jquery', 'react'], function($, React){
     render: function(){
       var className = ['form-group', this.state.error ? 'has-error' : ''].join(' '),
           wrapperClassName = ['col-lg-offset-' + this.props.cols.left, 'col-lg-' + this.props.cols.right].join(' '),
-          fieldName = this.props.config.fieldName,
-          count = 0;
-
-      function key(){
-        return fieldName + count++;
-      }
+          fieldName = this.props.config.fieldName;
 
       return d.div({className: className},
         d.div({className: wrapperClassName},
           d.div({className: 'checkbox'},
             d.label({},
               [
-                this.state.error ? HelpText({helpText: this.state.error}) : '',
+                this.state.error ? HelpText({helpText: this.state.error, key: 'error'}) : '',
                 d.input({
+                  type: 'checkbox',
                   name: fieldName,
                   id: fieldName,
-                  type: 'checkbox',
-                  key: key(),
+                  key: fieldName,
                   required: this.props.config.required,
                   checked: this.state.value,
                   onChange: function(e){this.setState({value: e.target.checked});}.bind(this)
                 }),
-                d.span({key: key()}, this.props.config.title),
-                this.props.config.helpText ? HelpText({helpText: this.props.config.helpText}) : ''
+                d.span({key: 'label-text'}, this.props.config.title),
+                this.props.config.helpText ? HelpText({helpText: this.props.config.helpText, key: 'help-text'}) : ''
               ]
             )
           )
@@ -685,7 +681,7 @@ define(['jquery', 'react'], function($, React){
   }
 
   return {
-    Dynoform: Form,
+    Form: Form,
     mergeConfigs: mergeConfigs
   };
 

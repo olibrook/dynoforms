@@ -162,7 +162,7 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
     ]
   },
 
-  form = React.renderComponent(dynoforms.Dynoform(
+  form = React.renderComponent(dynoforms.Form(
     {config: dynoforms.mergeConfigs(testSchema, formConfig)}
   ), $('.dynoform')[0]),
 
@@ -178,7 +178,11 @@ require(['dynoforms', 'jquery', 'react'], function (dynoforms, $, React) {
   // set errors like this
   form.setErrors({
     __all__: 'There were non-field errors', // Similar to a Django form
-    content: 'That does not look like valid markdown to us' // Field-specific errors
+    content: 'That does not look like valid markdown to us', // Field-specific errors
+    nested: [
+      {gender: 'Not a valid item'},
+      {content: 'Not valid content'}
+    ]
   });
 
   window.form = form;
